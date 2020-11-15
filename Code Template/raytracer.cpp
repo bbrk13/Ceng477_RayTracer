@@ -139,11 +139,15 @@ RGB rayTracer(Ray &camRay, int count, int y, int x)
     } 
 
     RGB lightColors = calculateLights(camRay, res);
+    colors.blue += lightColors.blue;
+    colors.red += lightColors.red;
+    colors.green += lightColors.green;
+    
+    return colors;
 }
 
 int main(int argc, char *argv[])
 {
-    // Sample usage for reading an XML scene file
 
     scene.loadFromXml(argv[1]);
 
@@ -151,25 +155,6 @@ int main(int argc, char *argv[])
     std::cout << "y = " << scene.background_color.y << std::endl;
     std::cout << "z = " << scene.background_color.z << std::endl;
 
-    // The code below creates a test pattern and writes
-    // it to a PPM file to demonstrate the usage of the
-    // ppm_write function.
-    //
-    // Normally, you would be running your ray tracing
-    // code here to produce the desired image.
-    /*
-    const RGB BAR_COLOR[8] =
-        {
-            {255, 255, 255}, // 100% White
-            {255, 255, 0},   // Yellow
-            {0, 255, 255},   // Cyan
-            {0, 255, 0},     // Green
-            {255, 0, 255},   // Magenta
-            {255, 0, 0},     // Red
-            {0, 0, 255},     // Blue
-            {0, 0, 0},       // Black
-        };
-    */
     for (int camera_index = 0; camera_index < scene.cameras.size(); camera_index++)
     {
         int width = scene.cameras[camera_index].image_width;
@@ -192,16 +177,6 @@ int main(int argc, char *argv[])
                 image[imageIndex++] = colors.blue;
             }
         }
-
-        // TODO find intersections and change color of related pixels
-
-        //TODO ambient light adding
-
-        //TODO for each light : light position light intensity adding
-
-        //TODO mirror light
-
-        //TODO Defuse
 
         write_ppm(scene.cameras[camera_index].image_name.c_str(), image, scene.cameras[camera_index].image_width, scene.cameras[camera_index].image_height);
     }
