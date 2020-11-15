@@ -113,6 +113,7 @@ int main(int argc, char* argv[])
         {
             for (int x = 0; x < width; ++x)
             {
+
                 image[i++] = scene.background_color.x;
                 image[i++] = scene.background_color.y;
                 image[i++] = scene.background_color.z;
@@ -120,6 +121,14 @@ int main(int argc, char* argv[])
         }
 
         // TODO find intersections and change color of related pixels
+
+        //TODO ambient light adding
+
+        //TODO for each light : light position light intensity adding
+
+        //TODO mirror light
+
+        //TODO Defuse
 
 
 
