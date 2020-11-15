@@ -61,6 +61,14 @@ parser::Vec3f add(parser::Vec3f a, parser::Vec3f b)
 
     return tmp;
 }
+parser::Vec3f subtract(parser::Vec3f a, parser::Vec3f b){
+
+    parser::Vec3f tmp;
+    tmp.x = a.x - b.x;
+    tmp.y = a.y - b.y;
+    tmp.z = a.z - b.z;
+    return tmp;
+}
 
 parser::Vec3f mult(parser::Vec3f a, float c)
 {
@@ -136,11 +144,145 @@ Ray getCamRay(parser::Camera Cam, int y, int x) {
 }
 
 CheckIntersectResult checkIntersect(Ray camRay, int y, int x) {
+ // TODO checkIntersectTriangle
+ // TODO checkIntersectSphere
+ // TODO checkIntersectMesh
 
+ // TODO Please add "t" result to return value of checkIntersect
+ // TODO Please add "position" value to return object
+
+ // TODO How do we pass objects to this function ?
 }
 
-RGB calculateLights(Ray camRay, CheckIntersectResult res) {
+RGB calculateLights(Ray camRay, CheckIntersectResult res, Parser::Material mat) {
 
+    float tmins = 1;
+    RGB resultContributionColor;
+    resultContributionColor.x = 0;
+    resultContributionColor.y = 0;
+    resultContributionColor.z = 0;
+
+    for (int index = 0; index < scene.point_lights.size() ; index++){
+
+        Ray rayShadow;
+        rayShadow.direction = scene.point_lights[index].position;
+        rayShadow.origin = subtract(res.position, scene.point_lights[index].position);
+
+        // for triangles
+        for (int tri_index = 0; tri_index < scene.triangles.size(); tri_index++){
+            parser::Triangle shadowTriangleObject = scene.triangles[tri_index];
+            CheckIntersectResult interResult = checkIntersectTriangle(shadowTriangleObject, rayShadow);
+
+            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+                tmins = interResult.t;
+            }
+
+        }
+
+        // for spheres
+        for (int sph_index = 0; sph_index < scene.spheres.size(); sph_index++){
+            parser::Sphere shadowSphereObject = scene.spheres[sph_index];
+            CheckIntersectResult interResult = checkIntersectSphere(shadowSphereObject, rayShadow);
+
+            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+                tmins = interResult.t;
+            }
+
+        }
+
+        // for meshes
+        for (int mesh_index = 0; mesh_index < scene.meshes.size(); mesh_index++){
+            parser::Mesh shadowMeshObject = scene.meshes[mesh_index];
+            CheckIntersectResult interResult = checkIntersectMesh(shadowMeshObject, rayShadow);
+
+            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+                tmins = interResult.t;
+            }
+
+        }
+
+        if (tmins >= 0.9998){
+            parser::Vec3f diffuseContribution;
+            parser::Vec3f specularContribution;
+
+            float cos1, cos2;
+
+            diffuseContribution = calculateLightContribution(scene.point_lights[index], res.position);
+            specularContribution = calculateLightContribution(scene.point_lights[index], res.position);
+
+            parser::Vec3f wi, w0, h;
+
+            wi = normalize(subtract(scene.point_lights[index].position, res.position));
+            w0 = normalize(subtract(camRay.origin, res.position));
+            h = normalize(add(wi, w0));
+
+            cos1 = dot(wi, res.normal) / length(res.normal) * length(wi));
+            cos2 = dot(h, res.normal) / length(res.normal) * length(h));
+
+            if (cos1 < 0){
+                res.normal.x *= -1;
+                res.normal.y *= -1;
+                res.normal.z *= -1;
+
+                cos1 = dot(res.normal, wi) / dot(length(res.normal * length(h)));
+
+                if (cos2 < 0){
+                    cos2 = dot(res.normal, h) / (length(res.normal) * length(h));
+                }
+            }
+
+            if (mat.phong_exponent > 100){
+                cos2 = 1;
+            }else {
+                cos2 = pow(cos2, mat.phong_exponent);
+            }
+
+
+            if (cos1 >= 0){
+                diffuseContribution.x *= cos1;
+                diffuseContribution.y *= cos1;
+                diffuseContribution.z *= cos1;
+            }else{
+                diffuseContribution.x = 0;
+                diffuseContribution.y = 0;
+                diffuseContribution.z = 0;
+            }
+
+
+            if (cos2 >= 0){
+                specularContribution.x *= cos2;
+                specularContribution.y *= cos2;
+                specularContribution.z *= cos2;
+            }else{
+                specularContribution.x = 0;
+                specularContribution.y = 0;
+                specularContribution.z = 0;
+            }
+
+            resultContributionColor.x += mat.diffuse.x * diffuseContribution.x ;
+            resultContributionColor.y += mat.diffuse.y * diffuseContribution.y ;
+            resultContributionColor.z += mat.diffuse.z * diffuseContribution.z ;
+
+            resultContributionColor.x += mat.specular.x * specularContribution.x ;
+            resultContributionColor.y += mat.specular.y * specularContribution.y ;
+            resultContributionColor.z += mat.specular.z * specularContribution.z ;
+
+        }
+        tmins = 1;
+
+
+
+    }
+     return resultContributionColor;
+}
+
+parser::Vector3f calculateLightContribution(parser::PointLight l, parser::Vec3f p){
+    parser::Vec3f tmp;
+    float distance = distance(p, l.position);
+    tmp.x = l.intensity.x;
+    tmp.y = l.intensity.y;
+    tmp.z = l.intensity.z;
+    return tmp;
 }
 
 RGB addAmbient() {
