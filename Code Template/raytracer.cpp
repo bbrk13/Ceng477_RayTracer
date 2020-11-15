@@ -3,6 +3,8 @@
 #include "ppm.h"
 #define ABS(a) ((a) > 0 ? (a) : -1 * (a))
 
+parser::Scene scene;
+
 struct CheckIntersectResult
 {
     int object_type; // 0: no intersect, 1: triangle, 2: sphere, 3: mesh
@@ -15,7 +17,8 @@ struct Ray
     parser::Vec3f direction;
 };
 
-struct RGB {
+struct RGB
+{
     float red;
     float green;
     float blue;
@@ -89,18 +92,101 @@ int equal(parser::Vec3f a, parser::Vec3f b)
     }
 }
 
-Ray getCamRay(parser::Camera, int y, int x) {
+Ray getCamRay(parser::Camera Cam, int y, int x) {
+    parser::Vector3f direction, m, q, s;
+    Ray resultRay;
+    float su, sv;
+
+    m.x = Cam.position.x;
+    m.y = Cam.position.y;
+    m.z = Cam.position.z - Cam.near_distance;
+
+    // Cam.near_pane.x = image plane left
+    // Cam.near_pane.y = image plane right
+    // Cam.near_pane.z = image plane bottom
+    // Cam.near_pane.w = image plane top
+
+    q.x = m.x + Cam.near_plane.x;
+    q.y = m.y + Cam.near_plane.y;
+    q.z = m.z;
+
+    su = ((Cam.near_plane.y - Cam.near_plane.x) / Cam.image_width) * (y + 0.5);
+    sv = ((Cam.near_plane.w - Cam.near_plane.z) / Cam.image_height) * (x + 0.5);
+
+    s.x = q.x + su;
+    s.y = q.y - sv;
+    s.z = q.z;
+
+    direction.x = s.x - Cam.position.x;
+    direction.y = s.y - Cam.position.y;
+    direction.z = s.z - Cam.position.z;
+
+    direction = normalize(direction);
+
+    resultRay.origin.x = Cam.position.x;
+    resultRay.origin.y = Cam.position.y;
+    resultRay.origin.z = Cam.position.z;
+
+    resultRay.direction.x = direction.x;
+    resultRay.direction.y = direction.y;
+    resultRay.direction.z = direction.z;
+
+    return resultRay;
 
 }
 
-RGB rayTracer(Ray &ray, int count, int y, int x) {
+CheckIntersectResult checkIntersect(Ray camRay, int y, int x) {
 
+}
+
+RGB calculateLights(Ray camRay, CheckIntersectResult res) {
+
+}
+
+RGB addAmbient() {
+
+}
+
+bool shouldCalculateMirror() {
+
+}
+
+RGB calculateMirror() {
+
+}
+
+RGB rayTracer(Ray &camRay, int count, int y, int x)
+{
+    RGB colors;
+    CheckIntersectResult res = checkIntersect(camRay, y, x);
+    if (res.object_type == 0)
+    {
+        colors.red = scene.background_color.x;
+        colors.green = scene.background_color.y;
+        colors.blue = scene.background_color.z;
+        return colors;
+    }
+
+    colors = addAmbient();
+
+    if (shouldCalculateMirror())
+    {
+        RGB mirrorColors = calculateMirror();
+        colors.blue += mirrorColors.blue;
+        colors.red += mirrorColors.red;
+        colors.green += mirrorColors.green;
+    }
+
+    RGB lightColors = calculateLights(camRay, res);
+    colors.blue += lightColors.blue;
+    colors.red += lightColors.red;
+    colors.green += lightColors.green;
+
+    return colors;
 }
 
 int main(int argc, char *argv[])
 {
-    // Sample usage for reading an XML scene file
-    parser::Scene scene;
 
     scene.loadFromXml(argv[1]);
 
@@ -108,25 +194,6 @@ int main(int argc, char *argv[])
     std::cout << "y = " << scene.background_color.y << std::endl;
     std::cout << "z = " << scene.background_color.z << std::endl;
 
-    // The code below creates a test pattern and writes
-    // it to a PPM file to demonstrate the usage of the
-    // ppm_write function.
-    //
-    // Normally, you would be running your ray tracing
-    // code here to produce the desired image.
-    /*
-    const RGB BAR_COLOR[8] =
-        {
-            {255, 255, 255}, // 100% White
-            {255, 255, 0},   // Yellow
-            {0, 255, 255},   // Cyan
-            {0, 255, 0},     // Green
-            {255, 0, 255},   // Magenta
-            {255, 0, 0},     // Red
-            {0, 0, 255},     // Blue
-            {0, 0, 0},       // Black
-        };
-    */
     for (int camera_index = 0; camera_index < scene.cameras.size(); camera_index++)
     {
         int width = scene.cameras[camera_index].image_width;
@@ -147,19 +214,8 @@ int main(int argc, char *argv[])
                 image[imageIndex++] = colors.red;
                 image[imageIndex++] = colors.green;
                 image[imageIndex++] = colors.blue;
-
             }
         }
-
-        // TODO find intersections and change color of related pixels
-
-        //TODO ambient light adding
-
-        //TODO for each light : light position light intensity adding
-
-        //TODO mirror light
-
-        //TODO Defuse
 
         write_ppm(scene.cameras[camera_index].image_name.c_str(), image, scene.cameras[camera_index].image_width, scene.cameras[camera_index].image_height);
     }
