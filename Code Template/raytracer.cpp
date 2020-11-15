@@ -134,6 +134,7 @@ int main(int argc, char* argv[])
 
         write_ppm(scene.cameras[camera_index].image_name.c_str(), image, scene.cameras[camera_index].image_width, scene.cameras[camera_index].image_height);
     }
+    //dummy
 
 
 }
