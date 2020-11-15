@@ -3,6 +3,8 @@
 #include "ppm.h"
 #define ABS(a) ((a) > 0 ? (a) : -1 * (a))
 
+parser::Scene scene;
+
 struct CheckIntersectResult
 {
     int object_type; // 0: no intersect, 1: triangle, 2: sphere, 3: mesh
@@ -15,7 +17,8 @@ struct Ray
     parser::Vec3f direction;
 };
 
-struct RGB {
+struct RGB
+{
     float red;
     float green;
     float blue;
@@ -89,18 +92,58 @@ int equal(parser::Vec3f a, parser::Vec3f b)
     }
 }
 
-Ray getCamRay(parser::Camera, int y, int x) {
+Ray getCamRay(parser::Camera, int y, int x)
+{
+}
+
+CheckIntersectResult checkIntersect(Ray camRay, int y, int x) {
 
 }
 
-RGB rayTracer(Ray &ray, int count, int y, int x) {
-    
+RGB calculateLights(Ray camRay, CheckIntersectResult res) {
+
+}
+
+RGB addAmbient() {
+
+}
+
+bool shouldCalculateMirror() {
+
+}
+
+RGB calculateMirror() {
+
+}
+
+RGB rayTracer(Ray &camRay, int count, int y, int x)
+{
+    RGB colors;
+    CheckIntersectResult res = checkIntersect(camRay, y, x);
+    if (res.object_type == 0)
+    {
+        colors.red = scene.background_color.x;
+        colors.green = scene.background_color.y;
+        colors.blue = scene.background_color.z;
+        return colors;
+    }
+
+    colors = addAmbient();
+
+    if (shouldCalculateMirror())
+    {
+        RGB mirrorColors = calculateMirror();
+        colors.blue += mirrorColors.blue;
+        colors.red += mirrorColors.red;
+        colors.green += mirrorColors.green;
+    } 
+
+    RGB lightColors = calculateLights(camRay, res);
 }
 
 int main(int argc, char *argv[])
 {
     // Sample usage for reading an XML scene file
-    parser::Scene scene;
 
     scene.loadFromXml(argv[1]);
 
@@ -147,7 +190,6 @@ int main(int argc, char *argv[])
                 image[imageIndex++] = colors.red;
                 image[imageIndex++] = colors.green;
                 image[imageIndex++] = colors.blue;
-
             }
         }
 
