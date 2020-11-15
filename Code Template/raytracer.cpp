@@ -1,73 +1,103 @@
 #include <iostream>
 #include "parser.h"
 #include "ppm.h"
+#define ABS(a) ((a) > 0 ? (a) : -1 * (a))
 
-typedef unsigned char RGB[3];
-
-float dot(Vec3f a, Vec3f b)
+struct CheckIntersectResult
 {
-    return a.x*b.x+a.y*b.y+a.z*b.z;
+    int object_type; // 0: no intersect, 1: triangle, 2: sphere, 3: mesh
+    int i;
+};
+
+struct Ray
+{
+    parser::Vec3f origin;
+    parser::Vec3f direction;
+};
+
+struct RGB {
+    float red;
+    float green;
+    float blue;
+};
+
+float dot(parser::Vec3f a, parser::Vec3f b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-float length2(Vec3f v)
+float length2(parser::Vec3f v)
 {
-    return (v.x*v.x+v.y*v.y+v.z*v.z);
+    return (v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-float length(Vec3f v)
+float length(parser::Vec3f v)
 {
-    return sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
+    return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-Vec3f normalize(Vec3f v)
+parser::Vec3f normalize(parser::Vec3f v)
 {
-    Vec3f tmp;
+    parser::Vec3f tmp;
     float d;
 
-    d=length(v);
-    tmp.x = v.x/d;
-    tmp.y = v.y/d;
-    tmp.z = v.z/d;
+    d = length(v);
+    tmp.x = v.x / d;
+    tmp.y = v.y / d;
+    tmp.z = v.z / d;
 
     return tmp;
 }
 
-Vec3f add(Vec3f a, Vec3f b)
+parser::Vec3f add(parser::Vec3f a, parser::Vec3f b)
 {
-    Vec3f tmp;
-    tmp.x = a.x+b.x;
-    tmp.y = a.y+b.y;
-    tmp.z = a.z+b.z;
+    parser::Vec3f tmp;
+    tmp.x = a.x + b.x;
+    tmp.y = a.y + b.y;
+    tmp.z = a.z + b.z;
 
     return tmp;
 }
 
-Vec3f mult(Vec3f a, float c)
+parser::Vec3f mult(parser::Vec3f a, float c)
 {
-    Vec3f tmp;
-    tmp.x = a.x*c;
-    tmp.y = a.y*c;
-    tmp.z = a.z*c;
+    parser::Vec3f tmp;
+    tmp.x = a.x * c;
+    tmp.y = a.y * c;
+    tmp.z = a.z * c;
 
     return tmp;
 }
 
-float distance(Vec3f a, Vec3f b)
+float distance(parser::Vec3f a, parser::Vec3f b)
 {
-    return sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y)+(a.z-b.z)*(a.z-b.z));
+    return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z));
 }
 
-int equal(Vec3f a, Vec3f b)
+int equal(parser::Vec3f a, parser::Vec3f b)
 {
     double e = 0.000000001;
 
     //printf("%lf %lf %f ----",ABS((a.x-b.x)),ABS((a.y-b.y)),ABS((a.z-b.z)));
-    if ((ABS((a.x-b.x))<e) && (ABS((a.y-b.y))<e) && (ABS((a.z-b.z))<e))
-    { return 1;}
-    else { return 0;}
+    if ((ABS((a.x - b.x)) < e) && (ABS((a.y - b.y)) < e) && (ABS((a.z - b.z)) < e))
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
-int main(int argc, char* argv[])
+Ray getCamRay(parser::Camera, int y, int x) {
+
+}
+
+RGB rayTracer(Ray &ray, int count, int y, int x) {
+
+}
+
+int main(int argc, char *argv[])
 {
     // Sample usage for reading an XML scene file
     parser::Scene scene;
@@ -84,39 +114,40 @@ int main(int argc, char* argv[])
     //
     // Normally, you would be running your ray tracing
     // code here to produce the desired image.
-
-
-
+    /*
     const RGB BAR_COLOR[8] =
+        {
+            {255, 255, 255}, // 100% White
+            {255, 255, 0},   // Yellow
+            {0, 255, 255},   // Cyan
+            {0, 255, 0},     // Green
+            {255, 0, 255},   // Magenta
+            {255, 0, 0},     // Red
+            {0, 0, 255},     // Blue
+            {0, 0, 0},       // Black
+        };
+    */
+    for (int camera_index = 0; camera_index < scene.cameras.size(); camera_index++)
     {
-        { 255, 255, 255 },  // 100% White
-        { 255, 255, 0 },  // Yellow
-        {   0, 255, 255 },  // Cyan
-        {   0, 255,   0 },  // Green
-        { 255,   0, 255 },  // Magenta
-        { 255,   0,   0 },  // Red
-        {   0,   0, 255 },  // Blue
-        {   0,   0,   0 },  // Black
-    };
-    for (int camera_index = 0; camera_index < scene.cameras.size(); camera_index++){
         int width = scene.cameras[camera_index].image_width;
         int height = scene.cameras[camera_index].image_height;
 
+        unsigned char *image = new unsigned char[width * height * 3];
 
-        unsigned char* image = new unsigned char [width * height * 3];
-
-
-
-        int i = 0;
+        int imageIndex = 0;
         // creting image by using background color from scene
         for (int y = 0; y < height; ++y)
         {
             for (int x = 0; x < width; ++x)
             {
 
-                image[i++] = scene.background_color.x;
-                image[i++] = scene.background_color.y;
-                image[i++] = scene.background_color.z;
+                Ray camRay = getCamRay(scene.cameras[camera_index], y, x);
+                RGB colors = rayTracer(camRay, 1, y, x);
+
+                image[imageIndex++] = colors.red;
+                image[imageIndex++] = colors.green;
+                image[imageIndex++] = colors.blue;
+
             }
         }
 
@@ -130,13 +161,6 @@ int main(int argc, char* argv[])
 
         //TODO Defuse
 
-
-
         write_ppm(scene.cameras[camera_index].image_name.c_str(), image, scene.cameras[camera_index].image_width, scene.cameras[camera_index].image_height);
     }
-    //dummy
-
-
 }
-
-
