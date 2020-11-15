@@ -142,7 +142,7 @@ RGB rayTracer(Ray &camRay, int count, int y, int x)
     colors.blue += lightColors.blue;
     colors.red += lightColors.red;
     colors.green += lightColors.green;
-    
+
     return colors;
 }
 
@@ -172,9 +172,9 @@ int main(int argc, char *argv[])
                 Ray camRay = getCamRay(scene.cameras[camera_index], y, x);
                 RGB colors = rayTracer(camRay, 1, y, x);
 
-                image[imageIndex++] = colors.red;
-                image[imageIndex++] = colors.green;
-                image[imageIndex++] = colors.blue;
+                image[imageIndex++] = colors.red > 255 ? 255 : int(colors.red);
+                image[imageIndex++] = colors.green > 255 ? 255 : int(colors.green);
+                image[imageIndex++] = colors.blue > 255 ? 255 : int(colors.blue);
             }
         }
 
