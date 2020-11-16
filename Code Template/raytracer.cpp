@@ -252,28 +252,35 @@ Intersection getIntersection(Ray camRay, int y, int x)
     return nearestIntersection;
 }
 
+parser::Vec3f calculateLightContribution(parser::PointLight l, parser::Vec3f p){
+    parser::Vec3f tmp;
+    float d = distance(p, l.position);
+    tmp.x = l.intensity.x / (d * d);
+    tmp.y = l.intensity.y / (d * d);
+    tmp.z = l.intensity.z / (d * d);
+    return tmp;
+}
 
+RGB calculateLights(Ray camRay, Intersection res) {
 
-    RGB calculateLights(Ray camRay, Intersection res, parser::Material mat) {
-
-    float tmins = 1;
-    RGB resultContributionColor;
-    resultContributionColor.red = 0;
-    resultContributionColor.green = 0;
-    resultContributionColor.blue = 0;
+float tmins = 1;
+RGB resultContributionColor;
+resultContributionColor.red = 0;
+resultContributionColor.green = 0;
+resultContributionColor.blue = 0;
 
     for (int index = 0; index < scene.point_lights.size() ; index++){
 
         Ray rayShadow;
         rayShadow.direction = scene.point_lights[index].position;
-        rayShadow.origin = subtract(res.position, scene.point_lights[index].position);
+        rayShadow.origin = subtract(res.point, scene.point_lights[index].position);
 
         // for triangles
         for (int tri_index = 0; tri_index < scene.triangles.size(); tri_index++){
             parser::Triangle shadowTriangleObject = scene.triangles[tri_index];
-            Intersection interResult = checkIntersectTriangle(shadowTriangleObject, rayShadow);
+            Intersection interResult = triangleIntersection(shadowTriangleObject, rayShadow);
 
-            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
                 tmins = interResult.t;
             }
 
@@ -282,23 +289,28 @@ Intersection getIntersection(Ray camRay, int y, int x)
         // for spheres
         for (int sph_index = 0; sph_index < scene.spheres.size(); sph_index++){
             parser::Sphere shadowSphereObject = scene.spheres[sph_index];
-            Intersection interResult = checkIntersectSphere(shadowSphereObject, rayShadow);
+            Intersection interResult = sphereIntersection(shadowSphereObject, rayShadow);
 
-            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
                 tmins = interResult.t;
             }
 
         }
 
         // for meshes
-        for (int mesh_index = 0; mesh_index < scene.meshes.size(); mesh_index++){
-            parser::Mesh shadowMeshObject = scene.meshes[mesh_index];
-            Intersection interResult = checkIntersectMesh(shadowMeshObject, rayShadow);
+        for (int i = 0; i < scene.meshes.size(); i++)
+        {
+            for (int j = 0; j < scene.meshes[i].faces.size(); j++)
+            {
+                struct parser::Triangle triangle;
+                triangle.material_id = scene.meshes[i].material_id;
+                triangle.indices = scene.meshes[i].faces[j];
+                Intersection interResult = triangleIntersection(triangle, rayShadow);
 
-            if (interResult.object_type != 0 && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
-                tmins = interResult.t;
+                if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+                    tmins = interResult.t;
+                }
             }
-
         }
 
         if (tmins >= 0.9998){
@@ -307,34 +319,34 @@ Intersection getIntersection(Ray camRay, int y, int x)
 
             float cos1, cos2;
 
-            diffuseContribution = calculateLightContribution(scene.point_lights[index], res.position);
-            specularContribution = calculateLightContribution(scene.point_lights[index], res.position);
+            diffuseContribution = calculateLightContribution(scene.point_lights[index], res.point);
+            specularContribution = calculateLightContribution(scene.point_lights[index], res.point);
 
             parser::Vec3f wi, w0, h;
 
-            wi = normalize(subtract(scene.point_lights[index].position, res.position));
-            w0 = normalize(subtract(camRay.origin, res.position));
+            wi = normalize(subtract(scene.point_lights[index].position, res.point));
+            w0 = normalize(subtract(camRay.origin, res.point));
             h = normalize(add(wi, w0));
 
-            cos1 = dot(wi, res.normal) / length(res.normal) * length(wi));
-            cos2 = dot(h, res.normal) / length(res.normal) * length(h));
+            cos1 = dot(wi, res.normal) / length(res.normal) * length(wi);
+            cos2 = dot(h, res.normal) / length(res.normal) * length(h);
 
             if (cos1 < 0){
                 res.normal.x *= -1;
                 res.normal.y *= -1;
                 res.normal.z *= -1;
 
-                cos1 = dot(res.normal, wi) / dot(length(res.normal * length(h)));
+                cos1 = dot(res.normal, wi) / (length(res.normal) * length(h));
 
                 if (cos2 < 0){
                     cos2 = dot(res.normal, h) / (length(res.normal) * length(h));
                 }
             }
 
-            if (mat.phong_exponent > 100){
+            if (res.material.phong_exponent > 100){
                 cos2 = 1;
             }else {
-                cos2 = pow(cos2, mat.phong_exponent);
+                cos2 = pow(cos2, res.material.phong_exponent);
             }
 
 
@@ -359,13 +371,13 @@ Intersection getIntersection(Ray camRay, int y, int x)
                 specularContribution.z = 0;
             }
 
-            resultContributionColor.red += mat.diffuse.x * diffuseContribution.x ;
-            resultContributionColor.green += mat.diffuse.y * diffuseContribution.y ;
-            resultContributionColor.blue += mat.diffuse.z * diffuseContribution.z ;
+            resultContributionColor.red += res.material.diffuse.x * diffuseContribution.x ;
+            resultContributionColor.green += res.material.diffuse.y * diffuseContribution.y ;
+            resultContributionColor.blue += res.material.diffuse.z * diffuseContribution.z ;
 
-            resultContributionColor.red += mat.specular.x * specularContribution.x ;
-            resultContributionColor.green += mat.specular.y * specularContribution.y ;
-            resultContributionColor.blue += mat.specular.z * specularContribution.z ;
+            resultContributionColor.red += res.material.specular.x * specularContribution.x ;
+            resultContributionColor.green += res.material.specular.y * specularContribution.y ;
+            resultContributionColor.blue += res.material.specular.z * specularContribution.z ;
 
         }
         tmins = 1;
@@ -373,17 +385,10 @@ Intersection getIntersection(Ray camRay, int y, int x)
 
 
     }
-     return resultContributionColor;
+ return resultContributionColor;
 }
 
-parser::Vec3f calculateLightContribution(parser::PointLight l, parser::Vec3f p){
-    parser::Vec3f tmp;
-    float distance = distance(p, l.position);
-    tmp.x = l.intensity.x;
-    tmp.y = l.intensity.y;
-    tmp.z = l.intensity.z;
-    return tmp;
-}
+
 
 RGB addAmbient(Intersection intersection) {
     RGB rgb;
