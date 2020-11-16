@@ -1,32 +1,45 @@
 #include <iostream>
 #include "parser.h"
 #include "ppm.h"
+#include <limits>
+#include<cmath>
 #define ABS(a) ((a) > 0 ? (a) : -1 * (a))
 
 parser::Scene scene;
 
-struct CheckIntersectResult
+typedef struct Intersection
 {
-    int object_type; // 0: no intersect, 1: triangle, 2: sphere, 3: mesh
-    int i;
-};
+    parser::Material material;
+    parser::Vec3f point;
+    parser::Vec3f normal;
+    bool exists;
+    float t;
+} Intersection;
 
-struct Ray
+typedef struct Ray
 {
     parser::Vec3f origin;
     parser::Vec3f direction;
-};
+} Ray;
 
-struct RGB
+typedef struct RGB
 {
     float red;
     float green;
     float blue;
-};
+} RGB;
 
 float dot(parser::Vec3f a, parser::Vec3f b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+parser::Vec3f cross(parser::Vec3f a, parser::Vec3f b) {
+	parser::Vec3f result;
+	result.x = a.y*b.z - a.z*b.y;
+	result.y = a.z*b.x - a.x*b.z;
+	result.z = a.x*b.y - a.y*b.x;
+	return result;
 }
 
 float length2(parser::Vec3f v)
@@ -61,14 +74,6 @@ parser::Vec3f add(parser::Vec3f a, parser::Vec3f b)
 
     return tmp;
 }
-parser::Vec3f subtract(parser::Vec3f a, parser::Vec3f b){
-
-    parser::Vec3f tmp;
-    tmp.x = a.x - b.x;
-    tmp.y = a.y - b.y;
-    tmp.z = a.z - b.z;
-    return tmp;
-}
 
 parser::Vec3f mult(parser::Vec3f a, float c)
 {
@@ -78,6 +83,14 @@ parser::Vec3f mult(parser::Vec3f a, float c)
     tmp.z = a.z * c;
 
     return tmp;
+}
+
+parser::Vec3f subtract(parser::Vec3f a, parser::Vec3f b) {
+	parser::Vec3f result;
+	result.x = a.x - b.x;
+	result.y = a.y - b.y;
+	result.z = a.z - b.z;
+	return result;
 }
 
 float distance(parser::Vec3f a, parser::Vec3f b)
@@ -141,6 +154,9 @@ Ray getCamRay(parser::Camera Cam, int y, int x) {
 
     return resultRay;
 
+float determinant(parser::Vec3f a, parser::Vec3f b, parser::Vec3f c){
+	float result =a.x*(b.y*c.z - c.y*b.z) + a.y*(c.x*b.z - c.z*b.x) + a.z*(b.x*c.y - b.y*c.x);
+	return result;
 }
 
 CheckIntersectResult checkIntersect(Ray camRay, int y, int x) {
