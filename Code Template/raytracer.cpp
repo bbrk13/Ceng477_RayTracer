@@ -2,7 +2,7 @@
 #include "parser.h"
 #include "ppm.h"
 #include <limits>
-#include<cmath>
+#include <cmath>
 #define ABS(a) ((a) > 0 ? (a) : -1 * (a))
 
 parser::Scene scene;
@@ -36,12 +36,13 @@ float dot(parser::Vec3f a, parser::Vec3f b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-parser::Vec3f cross(parser::Vec3f a, parser::Vec3f b) {
-	parser::Vec3f result;
-	result.x = a.y*b.z - a.z*b.y;
-	result.y = a.z*b.x - a.x*b.z;
-	result.z = a.x*b.y - a.y*b.x;
-	return result;
+parser::Vec3f cross(parser::Vec3f a, parser::Vec3f b)
+{
+    parser::Vec3f result;
+    result.x = a.y * b.z - a.z * b.y;
+    result.y = a.z * b.x - a.x * b.z;
+    result.z = a.x * b.y - a.y * b.x;
+    return result;
 }
 
 float length2(parser::Vec3f v)
@@ -87,12 +88,13 @@ parser::Vec3f mult(parser::Vec3f a, float c)
     return tmp;
 }
 
-parser::Vec3f subtract(parser::Vec3f a, parser::Vec3f b) {
-	parser::Vec3f result;
-	result.x = a.x - b.x;
-	result.y = a.y - b.y;
-	result.z = a.z - b.z;
-	return result;
+parser::Vec3f subtract(parser::Vec3f a, parser::Vec3f b)
+{
+    parser::Vec3f result;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    result.z = a.z - b.z;
+    return result;
 }
 
 float distance(parser::Vec3f a, parser::Vec3f b)
@@ -115,7 +117,8 @@ int equal(parser::Vec3f a, parser::Vec3f b)
     }
 }
 
-Ray getCamRay(parser::Camera Cam, int x, int y) {
+Ray getCamRay(parser::Camera Cam, int x, int y)
+{
     parser::Vec3f direction, m, q, s;
     Ray resultRay;
     float su, sv;
@@ -156,35 +159,39 @@ Ray getCamRay(parser::Camera Cam, int x, int y) {
 
     return resultRay;
 }
-float determinant(parser::Vec3f a, parser::Vec3f b, parser::Vec3f c){
-	float result =a.x*(b.y*c.z - c.y*b.z) + a.y*(c.x*b.z - c.z*b.x) + a.z*(b.x*c.y - b.y*c.x);
-	return result;
+float determinant(parser::Vec3f a, parser::Vec3f b, parser::Vec3f c)
+{
+    float result = a.x * (b.y * c.z - c.y * b.z) + a.y * (c.x * b.z - c.z * b.x) + a.z * (b.x * c.y - b.y * c.x);
+    return result;
 }
-
-
 
 Intersection sphereIntersection(parser::Sphere sphere, Ray camRay)
 {
     Intersection intersection;
     float t1, t2, det;
-	parser::Vec3f center = scene.vertex_data[sphere.center_vertex_id-1];
-	intersection.exists = false;
-	det = pow(dot(camRay.direction, subtract(camRay.origin,center)), 2) - dot(camRay.direction,camRay.direction) * (dot(subtract(camRay.origin,center),subtract(camRay.origin,center)) - pow(sphere.radius, 2));
-	if(det>0){
-		intersection.exists = true;
-		t1 = (-dot(camRay.direction,subtract(camRay.origin,center)) + sqrt(det))/dot(camRay.direction,camRay.direction);
-		t2 = (-dot(camRay.direction,subtract(camRay.origin,center)) - sqrt(det))/dot(camRay.direction,camRay.direction);
+    parser::Vec3f center = scene.vertex_data[sphere.center_vertex_id - 1];
+    intersection.exists = false;
+    det = pow(dot(camRay.direction, subtract(camRay.origin, center)), 2) - dot(camRay.direction, camRay.direction) * (dot(subtract(camRay.origin, center), subtract(camRay.origin, center)) - pow(sphere.radius, 2));
+    if (det > 0)
+    {
+        intersection.exists = true;
+        t1 = (-dot(camRay.direction, subtract(camRay.origin, center)) + sqrt(det)) / dot(camRay.direction, camRay.direction);
+        t2 = (-dot(camRay.direction, subtract(camRay.origin, center)) - sqrt(det)) / dot(camRay.direction, camRay.direction);
 
-		if(t1>0 && t2>0){
-			if(t1>t2){
+        if (t1 > 0 && t2 > 0)
+        {
+            if (t1 > t2)
+            {
                 intersection.point = add(camRay.origin, mult(camRay.direction, t2));
-		        intersection.t=t2;
-			}else{
+                intersection.t = t2;
+            }
+            else
+            {
                 intersection.point = add(camRay.origin, mult(camRay.direction, t1));
-		        intersection.t=t1;
-			}
+                intersection.t = t1;
+            }
             intersection.normal = normalize(subtract(intersection.point, center));
-		}
+        }
     }
     return intersection;
 }
@@ -193,24 +200,25 @@ Intersection triangleIntersection(parser::Triangle triangle, Ray camRay)
 {
     Intersection intersection;
 
-    parser::Vec3f a = scene.vertex_data[triangle.indices.v0_id-1];
-    parser::Vec3f b = scene.vertex_data[triangle.indices.v1_id-1];
-    parser::Vec3f c = scene.vertex_data[triangle.indices.v2_id-1];
+    parser::Vec3f a = scene.vertex_data[triangle.indices.v0_id - 1];
+    parser::Vec3f b = scene.vertex_data[triangle.indices.v1_id - 1];
+    parser::Vec3f c = scene.vertex_data[triangle.indices.v2_id - 1];
     float t, beta, alpha, A;
     intersection.exists = false;
 
-    A = determinant(subtract(a,b),subtract(a,c),camRay.direction);
-    beta = determinant(subtract(a,camRay.origin),subtract(a,c),camRay.direction)/A;
-	alpha = determinant(subtract(a,b),subtract(a,camRay.origin),camRay.direction)/A;
-	t = determinant(subtract(a,b),subtract(a,c),subtract(a,camRay.origin))/A;
-	if(beta>=0.0 && alpha>=0.0 && (beta+alpha)<=1.0 && t>0){
-		intersection.exists = true;
+    A = determinant(subtract(a, b), subtract(a, c), camRay.direction);
+    beta = determinant(subtract(a, camRay.origin), subtract(a, c), camRay.direction) / A;
+    alpha = determinant(subtract(a, b), subtract(a, camRay.origin), camRay.direction) / A;
+    t = determinant(subtract(a, b), subtract(a, c), subtract(a, camRay.origin)) / A;
+    if (beta >= 0.0 && alpha >= 0.0 && (beta + alpha) <= 1.0 && t > 0)
+    {
+        intersection.exists = true;
         intersection.normal = normalize(cross(subtract(c, a), subtract(b, a)));
         intersection.t = t;
         intersection.point.x = camRay.origin.x + camRay.direction.x * t;
         intersection.point.y = camRay.origin.y + camRay.direction.y * t;
         intersection.point.z = camRay.origin.z + camRay.direction.z * t;
-	}
+    }
 
     return intersection;
 }
@@ -256,7 +264,8 @@ Intersection getIntersection(Ray camRay)
     return nearestIntersection;
 }
 
-parser::Vec3f calculateLightContribution(parser::PointLight l, parser::Vec3f p){
+parser::Vec3f calculateLightContribution(parser::PointLight l, parser::Vec3f p)
+{
     parser::Vec3f tmp;
     float d = distance(p, l.position);
     tmp.x = l.intensity.x / (d * d);
@@ -265,40 +274,44 @@ parser::Vec3f calculateLightContribution(parser::PointLight l, parser::Vec3f p){
     return tmp;
 }
 
-RGB calculateLights(Ray camRay, Intersection res) {
+RGB calculateLights(Ray camRay, Intersection res)
+{
 
-float tmins = 1;
-RGB resultContributionColor;
-resultContributionColor.red = 0;
-resultContributionColor.green = 0;
-resultContributionColor.blue = 0;
+    float tmins = 1;
+    RGB resultContributionColor;
+    resultContributionColor.red = 0;
+    resultContributionColor.green = 0;
+    resultContributionColor.blue = 0;
 
-    for (int index = 0; index < scene.point_lights.size() ; index++){
+    for (int index = 0; index < scene.point_lights.size(); index++)
+    {
 
         Ray rayShadow;
         rayShadow.direction = scene.point_lights[index].position;
         rayShadow.origin = subtract(res.point, scene.point_lights[index].position);
 
         // for triangles
-        for (int tri_index = 0; tri_index < scene.triangles.size(); tri_index++){
+        for (int tri_index = 0; tri_index < scene.triangles.size(); tri_index++)
+        {
             parser::Triangle shadowTriangleObject = scene.triangles[tri_index];
             Intersection interResult = triangleIntersection(shadowTriangleObject, rayShadow);
 
-            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins)
+            {
                 tmins = interResult.t;
             }
-
         }
 
         // for spheres
-        for (int sph_index = 0; sph_index < scene.spheres.size(); sph_index++){
+        for (int sph_index = 0; sph_index < scene.spheres.size(); sph_index++)
+        {
             parser::Sphere shadowSphereObject = scene.spheres[sph_index];
             Intersection interResult = sphereIntersection(shadowSphereObject, rayShadow);
 
-            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+            if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins)
+            {
                 tmins = interResult.t;
             }
-
         }
 
         // for meshes
@@ -311,13 +324,15 @@ resultContributionColor.blue = 0;
                 triangle.indices = scene.meshes[i].faces[j];
                 Intersection interResult = triangleIntersection(triangle, rayShadow);
 
-                if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins){
+                if (interResult.exists && interResult.t > scene.shadow_ray_epsilon && interResult.t < tmins)
+                {
                     tmins = interResult.t;
                 }
             }
         }
 
-        if (tmins >= 0.9998){
+        if (tmins >= 0.9998)
+        {
             parser::Vec3f diffuseContribution;
             parser::Vec3f specularContribution;
 
@@ -335,66 +350,70 @@ resultContributionColor.blue = 0;
             cos1 = dot(wi, res.normal) / length(res.normal) * length(wi);
             cos2 = dot(h, res.normal) / length(res.normal) * length(h);
 
-            if (cos1 < 0){
+            if (cos1 < 0)
+            {
                 res.normal.x *= -1;
                 res.normal.y *= -1;
                 res.normal.z *= -1;
 
                 cos1 = dot(res.normal, wi) / (length(res.normal) * length(h));
 
-                if (cos2 < 0){
+                if (cos2 < 0)
+                {
                     cos2 = dot(res.normal, h) / (length(res.normal) * length(h));
                 }
             }
 
-            if (res.material.phong_exponent > 100){
+            if (res.material.phong_exponent > 100)
+            {
                 cos2 = 1;
-            }else {
+            }
+            else
+            {
                 cos2 = pow(cos2, res.material.phong_exponent);
             }
 
-
-            if (cos1 >= 0){
+            if (cos1 >= 0)
+            {
                 diffuseContribution.x *= cos1;
                 diffuseContribution.y *= cos1;
                 diffuseContribution.z *= cos1;
-            }else{
+            }
+            else
+            {
                 diffuseContribution.x = 0;
                 diffuseContribution.y = 0;
                 diffuseContribution.z = 0;
             }
 
-
-            if (cos2 >= 0){
+            if (cos2 >= 0)
+            {
                 specularContribution.x *= cos2;
                 specularContribution.y *= cos2;
                 specularContribution.z *= cos2;
-            }else{
+            }
+            else
+            {
                 specularContribution.x = 0;
                 specularContribution.y = 0;
                 specularContribution.z = 0;
             }
 
-            resultContributionColor.red += res.material.diffuse.x * diffuseContribution.x ;
-            resultContributionColor.green += res.material.diffuse.y * diffuseContribution.y ;
-            resultContributionColor.blue += res.material.diffuse.z * diffuseContribution.z ;
+            resultContributionColor.red += res.material.diffuse.x * diffuseContribution.x;
+            resultContributionColor.green += res.material.diffuse.y * diffuseContribution.y;
+            resultContributionColor.blue += res.material.diffuse.z * diffuseContribution.z;
 
-            resultContributionColor.red += res.material.specular.x * specularContribution.x ;
-            resultContributionColor.green += res.material.specular.y * specularContribution.y ;
-            resultContributionColor.blue += res.material.specular.z * specularContribution.z ;
-
+            resultContributionColor.red += res.material.specular.x * specularContribution.x;
+            resultContributionColor.green += res.material.specular.y * specularContribution.y;
+            resultContributionColor.blue += res.material.specular.z * specularContribution.z;
         }
         tmins = 1;
-
-
-
     }
- return resultContributionColor;
+    return resultContributionColor;
 }
 
-
-
-RGB addAmbient(Intersection intersection) {
+RGB addAmbient(Intersection intersection)
+{
     RGB rgb;
     rgb.red = intersection.material.ambient.x * scene.ambient_light.x;
     rgb.green = intersection.material.ambient.y * scene.ambient_light.y;
