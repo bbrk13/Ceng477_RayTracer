@@ -29,6 +29,8 @@ typedef struct RGB
     float blue;
 } RGB;
 
+RGB rayTracer(Ray &camRay, int cur_recursion_depth);
+
 float dot(parser::Vec3f a, parser::Vec3f b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
@@ -400,16 +402,18 @@ RGB addAmbient(Intersection intersection) {
     return rgb;
 }
 
-bool shouldCalculateMirror()
+RGB calculateMirror(Ray camRay, Intersection intersection, int cur_recursion_depth)
 {
-    return false;
+    parser::Vec3f w0 = normalize(subtract(camRay.origin, intersection.point));
+    parser::Vec3f direction = normalize(subtract(mult(mult(intersection.normal, dot(intersection.normal, w0)), 2), w0));
+    Ray mirRay;
+    mirRay.origin = intersection.point;
+    mirRay.direction = direction;
+    RGB mirrorColor = rayTracer(mirRay, cur_recursion_depth + 1);
+    return mirrorColor;
 }
 
-RGB calculateMirror()
-{
-}
-
-RGB rayTracer(Ray &camRay, int count, int x, int y)
+RGB rayTracer(Ray &camRay, int cur_recursion_depth)
 {
     RGB colors;
     Intersection intersection = getIntersection(camRay);
@@ -423,9 +427,9 @@ RGB rayTracer(Ray &camRay, int count, int x, int y)
 
     colors = addAmbient(intersection);
 
-    if (shouldCalculateMirror())
+    if (cur_recursion_depth < scene.max_recursion_depth && (intersection.material.mirror.x || intersection.material.mirror.y || intersection.material.mirror.z))
     {
-        RGB mirrorColors = calculateMirror();
+        RGB mirrorColors = calculateMirror(camRay, intersection, cur_recursion_depth);
         colors.blue += mirrorColors.blue;
         colors.red += mirrorColors.red;
         colors.green += mirrorColors.green;
@@ -463,7 +467,7 @@ int main(int argc, char *argv[])
             {
 
                 Ray camRay = getCamRay(scene.cameras[camera_index], y, x);
-                RGB colors = rayTracer(camRay, 1, y, x);
+                RGB colors = rayTracer(camRay, 1);
 
                 image[imageIndex++] = colors.red > 255 ? 255 : int(colors.red);
                 image[imageIndex++] = colors.green > 255 ? 255 : int(colors.green);
