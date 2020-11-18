@@ -175,6 +175,7 @@ Intersection sphereIntersection(parser::Sphere sphere, Ray camRay)
     if (det > 0)
     {
         intersection.exists = true;
+        intersection.material = scene.materials[sphere.material_id - 1];
         t1 = (-dot(camRay.direction, subtract(camRay.origin, center)) + sqrt(det)) / dot(camRay.direction, camRay.direction);
         t2 = (-dot(camRay.direction, subtract(camRay.origin, center)) - sqrt(det)) / dot(camRay.direction, camRay.direction);
 
@@ -218,6 +219,7 @@ Intersection triangleIntersection(parser::Triangle triangle, Ray camRay)
         intersection.point.x = camRay.origin.x + camRay.direction.x * t;
         intersection.point.y = camRay.origin.y + camRay.direction.y * t;
         intersection.point.z = camRay.origin.z + camRay.direction.z * t;
+        intersection.material = scene.materials[triangle.material_id - 1];
     }
 
     return intersection;
@@ -229,6 +231,22 @@ Intersection getIntersection(Ray camRay)
     Intersection nearestIntersection;
     nearestIntersection.exists = false;
     nearestIntersection.t = std::numeric_limits<float>::infinity();
+    for (int i = 0; i < scene.meshes.size(); i++)
+    {
+        struct parser::Triangle triangle;
+        for (int j = 0; j < scene.meshes[i].faces.size(); j++)
+        {
+            //struct parser::Triangle triangle;
+            triangle.indices = scene.meshes[i].faces[j];
+            //triangle.material_id = scene.meshes[i].material_id;
+            currentIntersection = triangleIntersection(triangle, camRay);
+            if (currentIntersection.t < nearestIntersection.t)
+            {
+                nearestIntersection = currentIntersection;
+                nearestIntersection.material = scene.materials[scene.meshes[i].material_id - 1];
+            }
+        }
+    }
     for (int i = 0; i < scene.spheres.size(); i++)
     {
         currentIntersection = sphereIntersection(scene.spheres[i], camRay);
@@ -247,20 +265,8 @@ Intersection getIntersection(Ray camRay)
             nearestIntersection.material = scene.materials[scene.triangles[i].material_id - 1];
         }
     }
-    for (int i = 0; i < scene.meshes.size(); i++)
-    {
-        for (int j = 0; j < scene.meshes[i].faces.size(); j++)
-        {
-            struct parser::Triangle triangle;
-            triangle.indices = scene.meshes[i].faces[j];
-            currentIntersection = triangleIntersection(triangle, camRay);
-            if (currentIntersection.t < nearestIntersection.t)
-            {
-                nearestIntersection = currentIntersection;
-                nearestIntersection.material = scene.materials[scene.meshes[i].material_id - 1];
-            }
-        }
-    }
+
+
     return nearestIntersection;
 }
 
@@ -287,8 +293,8 @@ RGB calculateLights(Ray camRay, Intersection res)
     {
 
         Ray rayShadow;
-        rayShadow.direction = scene.point_lights[index].position;
-        rayShadow.origin = subtract(res.point, scene.point_lights[index].position);
+        rayShadow.origin = scene.point_lights[index].position;
+        rayShadow.direction = subtract(res.point, scene.point_lights[index].position);
 
         // for triangles
         for (int tri_index = 0; tri_index < scene.triangles.size(); tri_index++)
@@ -331,7 +337,10 @@ RGB calculateLights(Ray camRay, Intersection res)
             }
         }
 
-        if (tmins >= 0.9998)
+        /*Intersection tmpResult = getIntersection(rayShadow);
+        tmins = tmpResult.t;*/
+
+        if (tmins < distance(res.point, scene.point_lights[index].position) && tmins > 0.9998)  // tmins >= 0.9998
         {
             parser::Vec3f diffuseContribution;
             parser::Vec3f specularContribution;
@@ -446,7 +455,7 @@ RGB rayTracer(Ray &camRay, int cur_recursion_depth)
 
     colors = addAmbient(intersection);
 
-    if (cur_recursion_depth < scene.max_recursion_depth && (intersection.material.mirror.x || intersection.material.mirror.y || intersection.material.mirror.z))
+    if (false && cur_recursion_depth < scene.max_recursion_depth && (intersection.material.mirror.x || intersection.material.mirror.y || intersection.material.mirror.z))
     {
         RGB mirrorColors = calculateMirror(camRay, intersection, cur_recursion_depth);
         colors.blue += mirrorColors.blue;
@@ -467,9 +476,9 @@ int main(int argc, char *argv[])
 
     scene.loadFromXml(argv[1]);
 
-    std::cout << "x = " << scene.background_color.x << std::endl;
-    std::cout << "y = " << scene.background_color.y << std::endl;
-    std::cout << "z = " << scene.background_color.z << std::endl;
+    //std::cout << "x = " << scene.background_color.x << std::endl;
+    //std::cout << "y = " << scene.background_color.y << std::endl;
+    //std::cout << "z = " << scene.background_color.z << std::endl;
 
     for (int camera_index = 0; camera_index < scene.cameras.size(); camera_index++)
     {
