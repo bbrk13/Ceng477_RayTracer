@@ -113,7 +113,7 @@ int equal(parser::Vec3f a, parser::Vec3f b)
     }
 }
 
-Ray getCamRay(parser::Camera Cam, int y, int x) {
+Ray getCamRay(parser::Camera Cam, int x, int y) {
     parser::Vec3f direction, m, q, s;
     Ray resultRay;
     float su, sv;
@@ -213,7 +213,7 @@ Intersection triangleIntersection(parser::Triangle triangle, Ray camRay)
     return intersection;
 }
 
-Intersection getIntersection(Ray camRay, int y, int x)
+Intersection getIntersection(Ray camRay)
 {
     Intersection currentIntersection;
     Intersection nearestIntersection;
@@ -222,17 +222,19 @@ Intersection getIntersection(Ray camRay, int y, int x)
     for (int i = 0; i < scene.spheres.size(); i++)
     {
         currentIntersection = sphereIntersection(scene.spheres[i], camRay);
-        if (currentIntersection.t < nearestIntersection.t)
+        if (currentIntersection.exists && currentIntersection.t < nearestIntersection.t)
         {
             nearestIntersection = currentIntersection;
+            nearestIntersection.material = scene.materials[scene.spheres[i].material_id - 1];
         }
     }
     for (int i = 0; i < scene.triangles.size(); i++)
     {
         currentIntersection = triangleIntersection(scene.triangles[i], camRay);
-        if (currentIntersection.t < nearestIntersection.t)
+        if (currentIntersection.exists && currentIntersection.t < nearestIntersection.t)
         {
             nearestIntersection = currentIntersection;
+            nearestIntersection.material = scene.materials[scene.triangles[i].material_id - 1];
         }
     }
     for (int i = 0; i < scene.meshes.size(); i++)
@@ -240,12 +242,12 @@ Intersection getIntersection(Ray camRay, int y, int x)
         for (int j = 0; j < scene.meshes[i].faces.size(); j++)
         {
             struct parser::Triangle triangle;
-            triangle.material_id = scene.meshes[i].material_id;
             triangle.indices = scene.meshes[i].faces[j];
             currentIntersection = triangleIntersection(triangle, camRay);
             if (currentIntersection.t < nearestIntersection.t)
             {
                 nearestIntersection = currentIntersection;
+                nearestIntersection.material = scene.materials[scene.meshes[i].material_id - 1];
             }
         }
     }
@@ -407,10 +409,10 @@ RGB calculateMirror()
 {
 }
 
-RGB rayTracer(Ray &camRay, int count, int y, int x)
+RGB rayTracer(Ray &camRay, int count, int x, int y)
 {
     RGB colors;
-    Intersection intersection = getIntersection(camRay, y, x);
+    Intersection intersection = getIntersection(camRay);
     if (!intersection.exists)
     {
         colors.red = scene.background_color.x;
